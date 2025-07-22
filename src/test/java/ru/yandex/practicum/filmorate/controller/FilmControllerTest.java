@@ -48,13 +48,12 @@ public class FilmControllerTest {
         assertTrue(e.getMessage().contains("Описание не может быть длиннее 200 символов"));
     }
 
-
     @Test
     void shouldThrowIfNameIsBlank() {
         Film film = new Film();
         film.setName("  ");
         film.setDescription("Название из пробелов");
-        film.setReleaseDate(LocalDate.of(2012, 12 ,12));
+        film.setReleaseDate(LocalDate.of(2012, 12,12));
         film.setDuration(100);
 
         ValidationException e = assertThrows(ValidationException.class, () -> controller.createFilm(film));
