@@ -19,7 +19,33 @@ public class FilmController {
     private int idCounter = 1;
 
     @PostMapping
-    public Film createFilm(@RequestBody(required = false) Film film) {
+    public Film createFilm(@RequestBody Film film) {
+        validateFilm(film);
+        film.setId(idCounter++);
+        films.put(film.getId(), film);
+        log.info("Добавлен фильм: {}", film);
+        return film;
+    }
+
+    @PutMapping
+    public Film updateFilm(@RequestBody Film film) {
+        if (!films.containsKey(film.getId())) {
+            log.warn("Попытка обновить несуществующий фильм с id={}", film.getId());
+            throw new ValidationException("Фильм с таким id не найден");
+        }
+        validateFilm(film);
+        films.put(film.getId(), film);
+        log.info("Обновлен фильм: {}", film);
+        return film;
+    }
+
+    @GetMapping
+    public List<Film> getAllFilms() {
+        log.info("Запрошен список всех фильмов");
+        return new ArrayList<>(films.values());
+    }
+
+    private void validateFilm(Film film) {
         if (film == null) {
             log.warn("Ошибка валидации: тело запроса (film) равно null");
             throw new ValidationException("Фильм не может быть null");
@@ -41,26 +67,5 @@ public class FilmController {
             log.warn("Ошибка валидации duration: {}",film.getDuration());
             throw new ValidationException("Продолжительность фильма должна быть положительным числом");
         }
-        film.setId(idCounter++);
-        films.put(film.getId(), film);
-        log.info("Добавлен фильм: {}", film);
-        return film;
-    }
-
-    @PutMapping
-    public Film updateFilm(@RequestBody Film film) {
-        if (!films.containsKey(film.getId())) {
-            log.warn("Попытка обновить несуществующий фильм с id={}", film.getId());
-            throw new ValidationException("Фильм с таким id не найден");
-        }
-        films.put(film.getId(), film);
-        log.info("Обновлен фильм: {}", film);
-        return film;
-    }
-
-    @GetMapping
-    public List<Film> getAllFilms() {
-        log.info("Запрошен список всех фильмов");
-        return new ArrayList<>(films.values());
     }
 }

@@ -11,21 +11,49 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 @Slf4j
 @RestController
 @RequestMapping("/users")
 public class UserController {
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
     private Map<Integer, User> users = new HashMap<>();
     private int idCounter = 1;
 
     @PostMapping
-    public User createUser(@RequestBody(required = false) User user) {
+    public User createUser(@RequestBody User user) {
+        validateUser(user);
+        user.setId(idCounter++);
+        users.put(user.getId(), user);
+        log.info("Создан пользователь: {}", user);
+        return user;
+    }
+
+    @PutMapping
+    public User updateUser(@RequestBody User user) {
+        if (!users.containsKey(user.getId())) {
+            log.warn("Попытка обновить несуществующего пользователя с id={}", user.getId());
+            throw new ValidationException("Пользователь с таким id не найден");
+        }
+        validateUser(user);
+        users.put(user.getId(), user);
+        log.info("Обновлен пользователь: {}", user);
+        return user;
+    }
+
+    @GetMapping
+    public List<User> getAllUsers() {
+        log.info("Запрошен список всех пользователей");
+        return new ArrayList<>(users.values());
+    }
+
+    private void validateUser(User user) {
         if (user == null) {
             log.warn("Ошибка валидации тело запроса (user) равно null");
             throw new ValidationException("Пользователь не может быть null");
         }
-        if (user.getEmail() == null || user.getEmail().isBlank() || !user.getEmail().contains("@")) {
+        if (user.getEmail() == null || !EMAIL_PATTERN.matcher(user.getEmail()).matches()) {
             log.warn("Ошибка валидации email: {}", user.getEmail());
             throw new ValidationException("Email не может быть пустым и должен содержать '@'");
         }
@@ -40,26 +68,5 @@ public class UserController {
             log.warn("Ошибка валидации birthday: {}", user.getBirthday());
             throw new ValidationException("Дата рождения не может быть в будущем");
         }
-        user.setId(idCounter++);
-        users.put(user.getId(), user);
-        log.info("Создан пользователь: {}", user);
-        return user;
-    }
-
-    @PutMapping
-    public User updateUser(@RequestBody User user) {
-        if (!users.containsKey(user.getId())) {
-            log.warn("Попытка обновить несуществующего пользователя с id={}", user.getId());
-            throw new ValidationException("Пользователь с таким id не найден");
-        }
-        users.put(user.getId(), user);
-        log.info("Обновлен пользователь: {}", user);
-        return user;
-    }
-
-    @GetMapping
-    public List<User> getAllUsers() {
-        log.info("Запрошен список всех пользователей");
-        return new ArrayList<>(users.values());
     }
 }
