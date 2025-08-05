@@ -2,20 +2,30 @@ package ru.yandex.practicum.filmorate.controller;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.UserService;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 public class UserControllerTest {
+
     private UserController controller;
+
+    @Mock
+    private UserService userService;
 
     @BeforeEach
     void beforeEach() {
-        controller = new UserController();
+        MockitoAnnotations.openMocks(this);
+        controller = new UserController(userService);
     }
 
     @Test
@@ -25,6 +35,9 @@ public class UserControllerTest {
         user.setLogin("Логин");
         user.setEmail("fff@gmail.com");
         user.setBirthday(LocalDate.of(2003, 3, 5));
+        user.setId(1);
+
+        when(userService.createUser(any(User.class))).thenReturn(user);
 
         User createUser = controller.createUser(user);
 
@@ -33,7 +46,6 @@ public class UserControllerTest {
         assertEquals("Логин", createUser.getLogin());
         assertEquals("fff@gmail.com", createUser.getEmail());
         assertEquals(LocalDate.of(2003, 3, 5), createUser.getBirthday());
-
     }
 
     @Test
@@ -43,6 +55,14 @@ public class UserControllerTest {
         user.setLogin("Имя1");
         user.setEmail("fff@gmail.com");
         user.setBirthday(LocalDate.of(2003, 3, 5));
+        user.setId(2);
+
+        when(userService.createUser(any(User.class))).thenAnswer(invocation -> {
+            User u = invocation.getArgument(0);
+            if (u.getName().isBlank()) u.setName(u.getLogin());
+            u.setId(2);
+            return u;
+        });
 
         User created = controller.createUser(user);
 
@@ -57,6 +77,9 @@ public class UserControllerTest {
         user.setEmail("fff.gmail.com");
         user.setBirthday(LocalDate.of(2003, 3, 5));
 
+        when(userService.createUser(any(User.class)))
+                .thenThrow(new ValidationException("Email не может быть пустым и должен содержать '@'"));
+
         ValidationException e = assertThrows(ValidationException.class, () -> controller.createUser(user));
         assertTrue(e.getMessage().contains("Email не может быть пустым и должен содержать '@'"));
     }
@@ -68,6 +91,9 @@ public class UserControllerTest {
         user.setLogin("Логин с пробелами");
         user.setEmail("fff@gmail.com");
         user.setBirthday(LocalDate.of(2003, 3, 5));
+
+        when(userService.createUser(any(User.class)))
+                .thenThrow(new ValidationException("Login не может быть пустым и не должен содержать пробелы"));
 
         ValidationException e = assertThrows(ValidationException.class, () -> controller.createUser(user));
         assertTrue(e.getMessage().contains("Login не может быть пустым и не должен содержать пробелы"));
@@ -81,6 +107,9 @@ public class UserControllerTest {
         user.setEmail("fff@gmail.com");
         user.setBirthday(LocalDate.now().plusDays(1));
 
+        when(userService.createUser(any(User.class)))
+                .thenThrow(new ValidationException("Дата рождения не может быть в будущем"));
+
         ValidationException e = assertThrows(ValidationException.class, () -> controller.createUser(user));
         assertTrue(e.getMessage().contains("Дата рождения не может быть в будущем"));
     }
@@ -88,21 +117,15 @@ public class UserControllerTest {
     @Test
     void shouldUpdateExistingUser() {
         User user = new User();
-        user.setName("Имя");
-        user.setLogin("Имя2");
-        user.setEmail("fff@gmail.com");
-        user.setBirthday(LocalDate.of(2003, 3, 5));
+        user.setName("Новое имя");
+        user.setLogin("newlogin");
+        user.setEmail("newfff@gmail.com");
+        user.setBirthday(LocalDate.of(2000, 12, 31));
+        user.setId(3);
 
-        User created = controller.createUser(user);
+        when(userService.updateUser(any(User.class))).thenReturn(user);
 
-        User updated = new User();
-        updated.setId(created.getId());
-        updated.setName("Новое имя");
-        updated.setLogin("newlogin");
-        updated.setEmail("newfff@gmail.com");
-        updated.setBirthday(LocalDate.of(2000, 12, 31));
-
-        User result = controller.updateUser(updated);
+        User result = controller.updateUser(user);
 
         assertEquals("newlogin", result.getLogin());
         assertEquals("newfff@gmail.com", result.getEmail());
@@ -117,24 +140,32 @@ public class UserControllerTest {
         user1.setLogin("user1");
         user1.setEmail("fff@gmail.com");
         user1.setBirthday(LocalDate.of(2003, 3, 5));
-        controller.createUser(user1);
+        user1.setId(4);
 
         User user2 = new User();
         user2.setName("Имя2");
         user2.setLogin("user2");
         user2.setEmail("ggg@gmail.com");
         user2.setBirthday(LocalDate.of(2000, 12, 31));
-        controller.createUser(user2);
+        user2.setId(5);
 
-        List<User> users = controller.getAllUsers();
+        List<User> users = new ArrayList<>();
+        users.add(user1);
+        users.add(user2);
 
-        assertEquals(2, users.size());
-        assertTrue(users.contains(user1));
-        assertTrue(users.contains(user2));
+        when(userService.getAllUsers()).thenReturn(users);
+
+        List<User> returnedUsers = controller.getAllUsers();
+
+        assertEquals(2, returnedUsers.size());
+        assertTrue(returnedUsers.contains(user1));
+        assertTrue(returnedUsers.contains(user2));
     }
 
     @Test
     void shouldThrowIfUserIsNull() {
+        when(userService.createUser(null)).thenThrow(new ValidationException("Пользователь не может быть null"));
+
         ValidationException e = assertThrows(ValidationException.class, () -> controller.createUser(null));
         assertEquals("Пользователь не может быть null", e.getMessage());
     }
