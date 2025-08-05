@@ -10,7 +10,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-
+//Нужно ли обновлять существующие и добавлять новые тесты, если сейчас тестируется в постмане?
 public class FilmControllerTest {
     private FilmController controller;
 
