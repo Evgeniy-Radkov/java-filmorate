@@ -8,16 +8,12 @@ import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
-import java.time.LocalDate;
 import java.util.*;
-import java.util.regex.Pattern;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class UserService {
-    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
-
     private final UserStorage userStorage;
 
     public User createUser(User user) {
@@ -129,20 +125,8 @@ public class UserService {
             log.warn("Ошибка валидации тело запроса (user) равно null");
             throw new ValidationException("Пользователь не может быть null");
         }
-        if (user.getEmail() == null || !EMAIL_PATTERN.matcher(user.getEmail()).matches()) {
-            log.warn("Ошибка валидации email: {}", user.getEmail());
-            throw new ValidationException("Email не может быть пустым и должен содержать '@'");
-        }
-        if (user.getLogin() == null || user.getLogin().isBlank() || user.getLogin().contains(" ")) {
-            log.warn("Ошибка валидации login: {}", user.getLogin());
-            throw new ValidationException("Login не может быть пустым и не должен содержать пробелы");
-        }
         if (user.getName() == null || user.getName().isBlank()) {
             user.setName(user.getLogin());
-        }
-        if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {
-            log.warn("Ошибка валидации birthday: {}", user.getBirthday());
-            throw new ValidationException("Дата рождения не может быть в будущем");
         }
     }
 }

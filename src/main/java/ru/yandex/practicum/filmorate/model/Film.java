@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.model;
 
+import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -11,9 +12,17 @@ import java.util.Set;
 @Setter
 public class Film {
     private int id;
+
+    @NotBlank(message = "Название фильма не может быть пустым")
     private String name;
+
+    @Size(max = 200, message = "Описание не может быть длиннее 200 символов")
     private String description;
+
     private LocalDate releaseDate;
+
+    @Positive(message = "Продолжительность фильма должна быть положительным числом")
     private int duration;
+
     private Set<Integer> likes = new HashSet<>();
 }
