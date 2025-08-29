@@ -3,6 +3,8 @@ package ru.yandex.practicum.filmorate.model;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
+import ru.yandex.practicum.filmorate.model.enums.Genre;
+import ru.yandex.practicum.filmorate.model.enums.MpaRating;
 
 import java.time.LocalDate;
 import java.util.HashSet;
@@ -25,4 +27,9 @@ public class Film {
     private int duration;
 
     private Set<Integer> likes = new HashSet<>();
+
+    private Set<Genre> genres = new HashSet<>();
+
+    @NotNull
+    private MpaRating mpa;
 }
