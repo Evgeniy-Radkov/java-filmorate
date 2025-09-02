@@ -80,7 +80,7 @@ public class UserDbStorage implements UserStorage {
         String sql = "UPDATE friendships SET status = 'CONFIRMED' " +
                 "WHERE user_id = ? AND friend_id = ? AND status = 'PENDING'";
         int updated = jdbc.update(sql, userId, friendId);
-        if(updated == 0) {
+        if (updated == 0) {
             throw new NotFoundException("Заявка не найдена или уже подтверждена");
         }
     }
