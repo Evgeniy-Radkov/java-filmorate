@@ -142,10 +142,12 @@ public class FilmDbStorage implements FilmStorage {
 
         if (genres == null || genres.isEmpty()) return;
 
-        Set<Integer> genreIds = new LinkedHashSet<>();
-        for (Genre g : genres) {
-            if (g != null) genreIds.add(g.getId());
-        }
+        List<Integer> genreIds = genres.stream()
+                .filter(Objects::nonNull)
+                .map(Genre::getId)
+                .distinct()
+                .sorted()
+                .toList();
 
         String sql = "INSERT INTO film_genres (film_id, genre_id) VALUES (?, ?)";
         for (Integer genreId : genreIds) {
