@@ -52,7 +52,8 @@ public class FilmDbStorage implements FilmStorage {
         }, keyHolder);
         film.setId(Objects.requireNonNull(keyHolder.getKey()).intValue());
         saveGenres(film.getId(), film.getGenres());
-        return film;
+        return getById(film.getId())
+                .orElseThrow(() -> new NotFoundException("Фильм не найден: " + film.getId()));
     }
 
     @Override
@@ -69,7 +70,8 @@ public class FilmDbStorage implements FilmStorage {
         );
         if (updated == 0) throw new NotFoundException("Фильм не найден: " + film.getId());
         saveGenres(film.getId(), film.getGenres());
-        return film;
+        return getById(film.getId())
+                .orElseThrow(() -> new NotFoundException("Фильм после обновления не найден: " + film.getId()));
     }
 
     @Override
