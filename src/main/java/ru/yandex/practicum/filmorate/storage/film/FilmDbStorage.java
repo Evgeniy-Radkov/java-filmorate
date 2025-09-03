@@ -3,6 +3,8 @@ package ru.yandex.practicum.filmorate.storage.film;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
@@ -80,9 +82,14 @@ public class FilmDbStorage implements FilmStorage {
                 "m.name AS mpa_name FROM films f " +
                 "JOIN mpa m ON f.mpa_id = m.id " +
                 "WHERE f.id = ?";
-        return  jdbc.query(sql, FILM_ROW_MAPPER, id).stream()
-                .peek(film -> film.setGenres(loadGenres(film.getId())))
-                .findFirst();
+        List<Film> films = jdbc.query(sql, FILM_ROW_MAPPER, id);
+        if (films.isEmpty()) return Optional.empty();
+
+        Film film = films.get(0);
+        Map<Integer, Set<Genre>> genresMap = loadGenres(List.of(film.getId()));
+        film.setGenres(genresMap.getOrDefault(film.getId(), new LinkedHashSet<>()));
+
+        return Optional.of(film);
     }
 
     @Override
@@ -93,7 +100,12 @@ public class FilmDbStorage implements FilmStorage {
                 "ORDER BY f.id";
 
         List<Film> films = jdbc.query(sql, FILM_ROW_MAPPER);
-        films.forEach(film -> film.setGenres(loadGenres(film.getId())));
+        if (films.isEmpty()) return films;
+
+        List<Integer> ids = films.stream().map(Film::getId).toList();
+        Map<Integer, Set<Genre>> byFilm = loadGenres(ids);
+
+        films.forEach(f -> f.setGenres(byFilm.getOrDefault(f.getId(), new LinkedHashSet<>())));
         return films;
     }
 
@@ -121,22 +133,48 @@ public class FilmDbStorage implements FilmStorage {
                 "LIMIT ?";
 
         List<Film> films = jdbc.query(sql, FILM_ROW_MAPPER, count);
-        films.forEach(f -> f.setGenres(loadGenres(f.getId())));
+        if (films.isEmpty()) return films;
+
+        List<Integer> ids = films.stream().map(Film::getId).toList();
+        Map<Integer, Set<Genre>> byFilm = loadGenres(ids);
+
+        films.forEach(f -> f.setGenres(byFilm.getOrDefault(f.getId(), new LinkedHashSet<>())));
         return films;
     }
 
 
-    private Set<Genre> loadGenres(int filmId) {
-        String sql = "SELECT g.id, g.name FROM film_genres fg " +
-                "JOIN genres g on g.id = fg.genre_id " +
-                "WHERE fg.film_id = ? " +
-                "ORDER BY g.id";
-        return new LinkedHashSet<>(jdbc.query(sql, (rs, rn) -> {
-            Genre genre = new Genre();
-            genre.setId(rs.getInt("id"));
-            genre.setName(rs.getString("name"));
-            return genre;
-        }, filmId));
+    private Map<Integer, Set<Genre>> loadGenres(Collection<Integer> filmIds) {
+        Map<Integer, Set<Genre>> result = new HashMap<>();
+        if (filmIds == null || filmIds.isEmpty()) {
+            return result;
+        }
+
+        NamedParameterJdbcTemplate named = new NamedParameterJdbcTemplate(jdbc);
+
+        String sql = "SELECT fg.film_id, g.id AS genre_id, g.name AS genre_name " +
+                "FROM film_genres fg " +
+                "JOIN genres g ON g.id = fg.genre_id " +
+                "WHERE fg.film_id IN (:ids) " +
+                "ORDER BY fg.film_id, g.id";
+
+        MapSqlParameterSource params = new MapSqlParameterSource("ids", filmIds);
+
+        named.query(sql, params, rs -> {
+            int filmId = rs.getInt("film_id");
+
+            Genre g = new Genre();
+            g.setId(rs.getInt("genre_id"));
+            g.setName(rs.getString("genre_name"));
+
+            Set<Genre> set = result.get(filmId);
+            if (set == null) {
+                set = new LinkedHashSet<>();
+                result.put(filmId, set);
+            }
+            set.add(g);
+        });
+
+        return result;
     }
 
     private void saveGenres(int filmId, Set<Genre> genres) {
