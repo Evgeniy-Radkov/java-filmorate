@@ -106,13 +106,13 @@ class FilmDbStorageJdbcTest {
         final int bId = b.getId();
         final int cId = c.getId();
 
-        Film A = all.stream().filter(x -> x.getId() == aId).findFirst().orElseThrow();
-        Film B = all.stream().filter(x -> x.getId() == bId).findFirst().orElseThrow();
-        Film C = all.stream().filter(x -> x.getId() == cId).findFirst().orElseThrow();
+        Film filmA = all.stream().filter(x -> x.getId() == aId).findFirst().orElseThrow();
+        Film filmB = all.stream().filter(x -> x.getId() == bId).findFirst().orElseThrow();
+        Film filmC = all.stream().filter(x -> x.getId() == cId).findFirst().orElseThrow();
 
-        assertThat(A.getGenres()).extracting(Genre::getId).containsExactly(1);
-        assertThat(B.getGenres()).isNotNull().isEmpty();
-        assertThat(C.getGenres()).extracting(Genre::getId).containsExactly(2);
+        assertThat(filmA.getGenres()).extracting(Genre::getId).containsExactly(1);
+        assertThat(filmB.getGenres()).isNotNull().isEmpty();
+        assertThat(filmC.getGenres()).extracting(Genre::getId).containsExactly(2);
     }
 
     @Test
